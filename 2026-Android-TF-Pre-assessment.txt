@@ -1,0 +1,54 @@
+2026 Android TechFresh Pre-Assessment
+專案背景
+請實作一個Android對話App- NASA Cosmos Messenger，打開 App後需顯示2個 Tab及其對應內容。
+Tab 1 - Nova :
+使用者可以透過對話方式，向AI助理「Nova」發送訊息，Nova 會回覆 NASA 每日天文圖（APOD）與介紹。
+輸入任何日期（例如生日），Nova 會告訴你：「那天宇宙長什麼樣子。」長按圖片可加入收藏。
+Tab 2-收藏：
+顯示使用者儲存的太空圖，可瀏覽與刪除。
+
+必做功能（Core Requirements）
+1. 聊天室介面
+• 實作對話聊天泡泡（使用者靠右、Nova 靠左）
+• 在聊天室中長按訊息可加入收藏
+• 新訊息送出或回覆後，列表應自動平滑捲動到底部
+2. Nova 的回覆邏輯與日期辨識
+• API 資訊：
+• 請使用 NASA APOD API
+• *1#:https://api.nasa.gov/
+• 免費申請 API Key（或測試用 DEMO_KEY，每天30次請求限制）
+• EX18>E APOD : GET https://api.nasa.gov/planetary/apod?api_key={KEY}
+• 取得指定日期：GET https://api.nasa.gov/planetary/apod?api_key=
+{KEY}&date=YYYY-MM-DD
+• APOD 最早始於 1995-06-16
+• 一般訊息：回覆今日 APOD，包含圖片、標題、日期、說明文字
+• 日期訊息：使用者輸入包含日期的文字（如 1995/06/20），Nova 回覆該日 APOD
+• 多媒體處理：若當日為影片（media_type == video），顯示連結即可
+• 至少需支援以下日期格式：
+• 1995/06/20 • 1995-06-20
+3.收藏與資料保存
+至少需使用本機儲存收藏的圖片在聊天室中長按訊息可加入收藏；
+在獨立tab中可瀏覽與刪除收藏
+
+Optional (Bonus)
+以下功能不強制，但能展示技術深度，請在 README 說明你完成了哪些。
+離線存取：將已看過的 APOD 資料存入 Room，離線時仍可瀏覽歷史訊息
+分享星空卡：點擊圖片後，將 APOD 圖片、標題與日期結合產生一張「生日星空卡」
+其他：任何你認為能提升使用體驗的功能，請在 README 說明你的想法與實作
+
+繳交方式
+1.期限
+一週
+2. GitHub Repository
+請上傳你/妳的 source code 至 github.com，並將repository 的連結發給我們。
+請保留完整 commit history。
+3. README 需包含
+• 架構說明、選擇的原因
+• 支援的日期格式列表
+•完成的 Bonus 功能說明
+4.請提供螢幕錄影
+• 請錄製操作影片並包含以下內容：
+• 在對話窗示範日期辨識功能
+• 在收藏Tab示範瀏覽及刪除功能
+。其他有實作的加分功能
+如有任何問題，請儘早提出，開發期限一週。Happy Coding！
