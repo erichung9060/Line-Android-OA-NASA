@@ -1,6 +1,5 @@
 package com.example.nasacosmosmessenger.presentation.chat
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,11 +11,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,92 +38,82 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    ChatScreenContent(
-        uiState = uiState,
-        onSendMessage = viewModel::sendMessage,
-        onAddToFavorites = { _ ->
-            // TODO: Implement in Phase 3
-        },
-        onImageClick = { _ ->
-            // TODO: Implement share in Phase 3
-        },
-        modifier = modifier
-    )
+    LaunchedEffect(uiState.snackbarMessage) {
+        uiState.snackbarMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearSnackbar()
+        }
+    }
+
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = {
+            MessageInput(
+                onSendMessage = viewModel::sendMessage,
+                enabled = !uiState.isLoading,
+                modifier = Modifier.imePadding()
+            )
+        }
+    ) { paddingValues ->
+        ChatScreenContent(
+            uiState = uiState,
+            onAddToFavorites = viewModel::saveToFavorites,
+            onImageClick = viewModel::shareApod,
+            modifier = Modifier.padding(paddingValues)
+        )
+    }
 }
 
 @Composable
 private fun ChatScreenContent(
     uiState: ChatUiState,
-    onSendMessage: (String) -> Unit,
     onAddToFavorites: (Apod) -> Unit,
     onImageClick: (Apod) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    val context = LocalContext.current
 
-    // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
 
-    // Auto-scroll when loading (typing indicator appears)
     LaunchedEffect(uiState.isLoading) {
         if (uiState.isLoading && uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
 
-    // Show error toast
-    LaunchedEffect(uiState.error) {
-        uiState.error?.let { error ->
-            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            MessageInput(
-                onSendMessage = onSendMessage,
-                enabled = !uiState.isLoading,
-                modifier = Modifier.imePadding()
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(
-                    items = uiState.messages,
-                    key = { it.id }
-                ) { message ->
-                    ChatBubble(
-                        message = message,
-                        onAddToFavorites = onAddToFavorites,
-                        onImageClick = onImageClick,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+            items(
+                items = uiState.messages,
+                key = { it.id }
+            ) { message ->
+                ChatBubble(
+                    message = message,
+                    onAddToFavorites = onAddToFavorites,
+                    onImageClick = onImageClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
-                // Typing indicator
-                if (uiState.isLoading) {
-                    item {
-                        TypingIndicator(
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
+            if (uiState.isLoading) {
+                item {
+                    TypingIndicator(
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
             }
         }
@@ -169,31 +160,6 @@ private fun ChatScreenPreview() {
                 ),
                 isLoading = false
             ),
-            onSendMessage = {},
-            onAddToFavorites = {},
-            onImageClick = {}
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun ChatScreenLoadingPreview() {
-    CosmosMessengerTheme {
-        ChatScreenContent(
-            uiState = ChatUiState(
-                messages = listOf(
-                    ChatMessage(
-                        id = "1",
-                        content = "Show me today",
-                        apod = null,
-                        isFromUser = true,
-                        timestamp = Instant.now()
-                    )
-                ),
-                isLoading = true
-            ),
-            onSendMessage = {},
             onAddToFavorites = {},
             onImageClick = {}
         )

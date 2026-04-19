@@ -2,6 +2,7 @@ package com.example.nasacosmosmessenger.presentation.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nasacosmosmessenger.domain.model.Apod
 import com.example.nasacosmosmessenger.domain.model.ChatMessage
 import com.example.nasacosmosmessenger.domain.model.Resource
 import com.example.nasacosmosmessenger.domain.usecase.GetApodByDateUseCase
@@ -10,6 +11,9 @@ import com.example.nasacosmosmessenger.domain.usecase.ObserveChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.ParseDateUseCase
 import com.example.nasacosmosmessenger.domain.usecase.RestoreChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.SaveChatMessageUseCase
+import com.example.nasacosmosmessenger.domain.usecase.SaveFavoriteUseCase
+import com.example.nasacosmosmessenger.presentation.util.BirthdayCardGenerator
+import com.example.nasacosmosmessenger.util.ShareUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,28 +31,23 @@ class ChatViewModel @Inject constructor(
     private val parseDateUseCase: ParseDateUseCase,
     private val saveChatMessageUseCase: SaveChatMessageUseCase,
     private val observeChatHistoryUseCase: ObserveChatHistoryUseCase,
-    private val restoreChatHistoryUseCase: RestoreChatHistoryUseCase
+    private val restoreChatHistoryUseCase: RestoreChatHistoryUseCase,
+    private val saveFavoriteUseCase: SaveFavoriteUseCase,
+    private val birthdayCardGenerator: BirthdayCardGenerator,
+    private val shareUtils: ShareUtils
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    // Flag to prevent greeting from being shown multiple times
     private var hasShownGreeting = false
 
     init {
         initializeChatHistory()
     }
 
-    /**
-     * Initialize chat history following ARCHITECTURE.md section 8.2:
-     * 1. Use RestoreChatHistoryUseCase for initial load
-     * 2. Show greeting if history is empty (only once)
-     * 3. Start observing for reactive updates
-     */
     private fun initializeChatHistory() {
         viewModelScope.launch {
-            // Step 1: Restore existing history (one-shot)
             val restoredHistory = restoreChatHistoryUseCase()
 
             _uiState.update { state ->
@@ -58,13 +57,11 @@ class ChatViewModel @Inject constructor(
                 )
             }
 
-            // Step 2: Show greeting if no history exists (only once)
             if (restoredHistory.isEmpty() && !hasShownGreeting) {
                 hasShownGreeting = true
                 showGreeting()
             }
 
-            // Step 3: Start observing for reactive updates
             observeChatHistory()
         }
     }
@@ -96,7 +93,6 @@ class ChatViewModel @Inject constructor(
         if (text.isBlank()) return
 
         viewModelScope.launch {
-            // 1. Create and save user message
             val userMessage = ChatMessage(
                 id = UUID.randomUUID().toString(),
                 content = text.trim(),
@@ -106,20 +102,16 @@ class ChatViewModel @Inject constructor(
             )
             saveChatMessageUseCase(userMessage)
 
-            // 2. Set loading state
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // 3. Parse date from message
             val parsedDate = parseDateUseCase(text)
 
-            // 4. Fetch APOD (by date or today)
             val result = if (parsedDate != null) {
                 getApodByDateUseCase(parsedDate)
             } else {
                 getTodayApodUseCase()
             }
 
-            // 5. Handle result
             when (result) {
                 is Resource.Success -> {
                     val apod = result.data
@@ -129,34 +121,67 @@ class ChatViewModel @Inject constructor(
                         "Here's today's cosmic view:"
                     }
 
-                    val novaMessage = ChatMessage(
-                        id = UUID.randomUUID().toString(),
-                        content = responseText,
-                        apod = apod,
-                        isFromUser = false,
-                        timestamp = Instant.now()
+                    saveChatMessageUseCase(
+                        ChatMessage(
+                            id = UUID.randomUUID().toString(),
+                            content = responseText,
+                            apod = apod,
+                            isFromUser = false,
+                            timestamp = Instant.now()
+                        )
                     )
-                    saveChatMessageUseCase(novaMessage)
                     _uiState.update { it.copy(isLoading = false) }
                 }
 
                 is Resource.Error -> {
-                    val errorMessage = ChatMessage(
-                        id = UUID.randomUUID().toString(),
-                        content = "Oops! I couldn't reach NASA right now. ${result.message}",
-                        apod = null,
-                        isFromUser = false,
-                        timestamp = Instant.now()
+                    saveChatMessageUseCase(
+                        ChatMessage(
+                            id = UUID.randomUUID().toString(),
+                            content = "Oops! I couldn't reach NASA right now. ${result.message}",
+                            apod = null,
+                            isFromUser = false,
+                            timestamp = Instant.now()
+                        )
                     )
-                    saveChatMessageUseCase(errorMessage)
                     _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
 
-                is Resource.Loading -> {
-                    // Already handled above
-                }
+                is Resource.Loading -> {}
             }
         }
+    }
+
+    fun saveToFavorites(apod: Apod) {
+        viewModelScope.launch {
+            try {
+                saveFavoriteUseCase(apod)
+                _uiState.update { it.copy(snackbarMessage = "Added to favorites!") }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(snackbarMessage = "Failed to save favorite") }
+            }
+        }
+    }
+
+    fun shareApod(apod: Apod) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            try {
+                val result = birthdayCardGenerator.generateCardForApod(apod)
+                if (result.cardFile != null) {
+                    shareUtils.shareCard(cardFile = result.cardFile, sourceUrl = result.sourceUrl)
+                } else {
+                    _uiState.update { it.copy(snackbarMessage = "Failed to generate card") }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(snackbarMessage = "Failed to share: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun clearSnackbar() {
+        _uiState.update { it.copy(snackbarMessage = null) }
     }
 
     fun clearError() {
