@@ -1,5 +1,6 @@
 package com.example.nasacosmosmessenger.di
 
+import com.example.nasacosmosmessenger.data.remote.api.NasaApodApi
 import com.example.nasacosmosmessenger.data.remote.interceptor.ApiKeyInterceptor
 import dagger.Module
 import dagger.Provides
@@ -60,5 +61,9 @@ object NetworkModule {
             .build()
     }
 
-    // NasaApodApi will be added in Phase 2
+    @Provides
+    @Singleton
+    fun provideNasaApodApi(retrofit: Retrofit): NasaApodApi {
+        return retrofit.create(NasaApodApi::class.java)
+    }
 }
