@@ -1,12 +1,16 @@
 package com.example.nasacosmosmessenger.di
 
+import android.content.Context
+import coil.ImageLoader
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import javax.inject.Qualifier
+import javax.inject.Singleton
 
 @Qualifier
 @Retention(AnnotationRetention.RUNTIME)
@@ -35,4 +39,10 @@ object AppModule {
     @Provides
     @MainDispatcher
     fun provideMainDispatcher(): CoroutineDispatcher = Dispatchers.Main
+
+    @Provides
+    @Singleton
+    fun provideImageLoader(@ApplicationContext context: Context): ImageLoader {
+        return ImageLoader.Builder(context).build()
+    }
 }
