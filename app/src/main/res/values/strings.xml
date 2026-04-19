@@ -1,3 +1,9 @@
 <resources>
-    <string name="app_name">NASACosmosMessenger</string>
+    <string name="app_name">Cosmos Messenger</string>
+    <string name="tab_nova">Nova</string>
+    <string name="tab_favorites">Favorites</string>
+    <string name="nova_greeting">Hi! I\'m Nova. Enter a date and I\'ll show you the cosmos!</string>
+    <string name="error_network">Couldn\'t connect to NASA. Check your internet.</string>
+    <string name="favorites_empty">No favorites yet. Long-press any image to save it!</string>
+    <string name="share_card_title">Share Birthday Cosmos</string>
 </resources>
