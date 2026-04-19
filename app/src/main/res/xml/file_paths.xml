@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+        FileProvider paths for sharing birthday cards.
+        Per ARCHITECTURE.md Section 10.2:
+        - Cards are saved to app cache directory
+        - Shared via FileProvider URI
+    -->
+    <cache-path
+        name="shared_cards"
+        path="birthday_cards/" />
+</paths>
