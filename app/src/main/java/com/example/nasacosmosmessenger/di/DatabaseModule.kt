@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.nasacosmosmessenger.data.local.dao.ApodCacheDao
 import com.example.nasacosmosmessenger.data.local.dao.ChatMessageDao
+import com.example.nasacosmosmessenger.data.local.dao.FavoriteDao
 import com.example.nasacosmosmessenger.data.local.database.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -25,7 +26,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             AppDatabase.DATABASE_NAME
-        ).build()
+        )
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides
@@ -38,5 +41,11 @@ object DatabaseModule {
     @Singleton
     fun provideChatMessageDao(database: AppDatabase): ChatMessageDao {
         return database.chatMessageDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFavoriteDao(database: AppDatabase): FavoriteDao {
+        return database.favoriteDao()
     }
 }
