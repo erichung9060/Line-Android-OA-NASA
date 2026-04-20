@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,10 +33,24 @@ class FavoritesViewModel @Inject constructor(
 
     private fun observeFavorites() {
         viewModelScope.launch {
-            getFavoritesUseCase().collect { favorites ->
-                _uiState.update { it.copy(favorites = favorites, isLoading = false) }
-            }
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            getFavoritesUseCase()
+                .catch { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Failed to load favorites. Please try again."
+                        )
+                    }
+                }
+                .collect { favorites ->
+                    _uiState.update { it.copy(favorites = favorites, isLoading = false, error = null) }
+                }
         }
+    }
+
+    fun retry() {
+        observeFavorites()
     }
 
     fun deleteFavorite(favorite: Favorite) {
