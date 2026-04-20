@@ -136,7 +136,7 @@ class BirthdayCardGenerator @Inject constructor(
 
             saveToCache(cardBitmap)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("BirthdayCardGenerator", "Failed to generate card with image", e)
             null
         }
     }
@@ -163,7 +163,7 @@ class BirthdayCardGenerator @Inject constructor(
 
             saveToCache(cardBitmap)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("BirthdayCardGenerator", "Failed to generate text-only card", e)
             null
         }
     }
