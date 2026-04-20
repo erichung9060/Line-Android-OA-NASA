@@ -134,10 +134,20 @@ class ChatViewModel @Inject constructor(
                 }
 
                 is Resource.Error -> {
+                    val errorContent = when {
+                        result.cause is java.net.UnknownHostException ->
+                            "Oops! I couldn't reach NASA right now. Please check your connection and try again."
+                        result.cause is java.net.SocketTimeoutException ->
+                            "The connection timed out. Please try again."
+                        result.message?.contains("429") == true ->
+                            "NASA's servers are busy. Please try again in a moment."
+                        else ->
+                            "Oops! Something went wrong. Please try again."
+                    }
                     saveChatMessageUseCase(
                         ChatMessage(
                             id = UUID.randomUUID().toString(),
-                            content = "Oops! I couldn't reach NASA right now. ${result.message}",
+                            content = errorContent,
                             apod = null,
                             isFromUser = false,
                             timestamp = Instant.now()
