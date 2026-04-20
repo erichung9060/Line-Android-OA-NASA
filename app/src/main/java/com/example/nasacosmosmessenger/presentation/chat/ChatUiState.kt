@@ -7,5 +7,6 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isInitialized: Boolean = false,
-    val snackbarMessage: String? = null
+    val snackbarMessage: String? = null,
+    val lastFailedMessage: String? = null // For retry capability
 )

@@ -153,7 +153,7 @@ class ChatViewModel @Inject constructor(
                             timestamp = Instant.now()
                         )
                     )
-                    _uiState.update { it.copy(isLoading = false, error = result.message) }
+                    _uiState.update { it.copy(isLoading = false, error = result.message, lastFailedMessage = text.trim()) }
                 }
 
                 is Resource.Loading -> {}
@@ -196,5 +196,15 @@ class ChatViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    fun retryLastMessage() {
+        val lastMessage = _uiState.value.lastFailedMessage ?: return
+        _uiState.update { it.copy(lastFailedMessage = null) }
+        sendMessage(lastMessage)
+    }
+
+    fun clearRetryState() {
+        _uiState.update { it.copy(lastFailedMessage = null) }
     }
 }

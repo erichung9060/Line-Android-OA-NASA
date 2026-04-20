@@ -11,8 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,71 +51,98 @@ fun ChatScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        bottomBar = {
-            MessageInput(
-                onSendMessage = viewModel::sendMessage,
-                enabled = !uiState.isLoading,
-                modifier = Modifier.imePadding()
-            )
-        }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         ChatScreenContent(
             uiState = uiState,
+            onSendMessage = viewModel::sendMessage,
             onAddToFavorites = viewModel::saveToFavorites,
             onImageClick = viewModel::shareApod,
+            onRetry = viewModel::retryLastMessage,
+            onDismissRetry = viewModel::clearRetryState,
+            snackbarHostState = snackbarHostState,
             modifier = Modifier.padding(paddingValues)
         )
     }
 }
 
 @Composable
-private fun ChatScreenContent(
+internal fun ChatScreenContent(
     uiState: ChatUiState,
+    onSendMessage: (String) -> Unit,
     onAddToFavorites: (Apod) -> Unit,
     onImageClick: (Apod) -> Unit,
+    onRetry: () -> Unit = {},
+    onDismissRetry: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
 
-    LaunchedEffect(uiState.messages.size) {
+    LaunchedEffect(uiState.messages.size, uiState.isLoading) {
         if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)
+            val targetIndex = if (uiState.isLoading) {
+                uiState.messages.size
+            } else {
+                uiState.messages.lastIndex
+            }
+            listState.animateScrollToItem(index = targetIndex, scrollOffset = 0)
         }
     }
 
-    LaunchedEffect(uiState.isLoading) {
-        if (uiState.isLoading && uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.messages.size - 1)
+    uiState.lastFailedMessage?.let {
+        LaunchedEffect(it) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Message failed to send",
+                actionLabel = "Retry",
+                duration = SnackbarDuration.Long
+            )
+            when (result) {
+                SnackbarResult.ActionPerformed -> onRetry()
+                SnackbarResult.Dismissed -> onDismissRetry()
+            }
         }
     }
 
     Box(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .imePadding()
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(
-                items = uiState.messages,
-                key = { it.id }
-            ) { message ->
-                ChatBubble(
-                    message = message,
-                    onAddToFavorites = onAddToFavorites,
-                    onImageClick = onImageClick,
-                    modifier = Modifier.fillMaxWidth()
+        Scaffold(
+            bottomBar = {
+                MessageInput(
+                    onSendMessage = onSendMessage,
+                    enabled = !uiState.isLoading
                 )
             }
-
-            if (uiState.isLoading) {
-                item {
-                    TypingIndicator(
-                        modifier = Modifier.padding(top = 4.dp)
+        ) { innerPadding ->
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(
+                    items = uiState.messages,
+                    key = { it.id }
+                ) { message ->
+                    ChatBubble(
+                        message = message,
+                        onAddToFavorites = onAddToFavorites,
+                        onImageClick = onImageClick,
+                        modifier = Modifier.fillMaxWidth()
                     )
+                }
+
+                if (uiState.isLoading) {
+                    item {
+                        TypingIndicator(
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -160,6 +189,7 @@ private fun ChatScreenPreview() {
                 ),
                 isLoading = false
             ),
+            onSendMessage = {},
             onAddToFavorites = {},
             onImageClick = {}
         )
