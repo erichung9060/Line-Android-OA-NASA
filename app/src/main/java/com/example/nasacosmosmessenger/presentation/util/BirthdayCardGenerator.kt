@@ -76,7 +76,13 @@ class BirthdayCardGenerator @Inject constructor(
         )
 
         return if (imageUrl != null) {
-            CardGenerationResult(cardFile = generateCard(imageUrl, apod.title, apod.date))
+            // Try with image; fall back to text-only on any media error per ARCHITECTURE.md Section 11.1
+            val cardFile = generateCard(imageUrl, apod.title, apod.date)
+                ?: run {
+                    android.util.Log.w("BirthdayCardGenerator", "Image load failed, using text fallback")
+                    generateTextOnlyCard(apod.title, apod.date)
+                }
+            CardGenerationResult(cardFile = cardFile)
         } else {
             CardGenerationResult(
                 cardFile = generateTextOnlyCard(apod.title, apod.date),
@@ -96,7 +102,13 @@ class BirthdayCardGenerator @Inject constructor(
         )
 
         return if (imageUrl != null) {
-            CardGenerationResult(cardFile = generateCard(imageUrl, favorite.title, favorite.date))
+            // Try with image; fall back to text-only on any media error per ARCHITECTURE.md Section 11.1
+            val cardFile = generateCard(imageUrl, favorite.title, favorite.date)
+                ?: run {
+                    android.util.Log.w("BirthdayCardGenerator", "Image load failed, using text fallback")
+                    generateTextOnlyCard(favorite.title, favorite.date)
+                }
+            CardGenerationResult(cardFile = cardFile)
         } else {
             CardGenerationResult(
                 cardFile = generateTextOnlyCard(favorite.title, favorite.date),
