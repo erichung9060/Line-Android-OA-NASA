@@ -9,6 +9,9 @@ import com.example.nasacosmosmessenger.domain.usecase.ObserveChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.ParseDateUseCase
 import com.example.nasacosmosmessenger.domain.usecase.RestoreChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.SaveChatMessageUseCase
+import com.example.nasacosmosmessenger.domain.usecase.SaveFavoriteUseCase
+import com.example.nasacosmosmessenger.presentation.util.BirthdayCardGenerator
+import com.example.nasacosmosmessenger.util.ShareUtils
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -36,6 +39,9 @@ class ChatViewModelTest {
     private val saveChatMessageUseCase = mockk<SaveChatMessageUseCase>(relaxed = true)
     private val observeChatHistoryUseCase = mockk<ObserveChatHistoryUseCase>()
     private val restoreChatHistoryUseCase = mockk<RestoreChatHistoryUseCase>()
+    private val saveFavoriteUseCase = mockk<SaveFavoriteUseCase>(relaxed = true)
+    private val birthdayCardGenerator = mockk<BirthdayCardGenerator>(relaxed = true)
+    private val shareUtils = mockk<ShareUtils>(relaxed = true)
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -70,7 +76,10 @@ class ChatViewModelTest {
             parseDateUseCase,
             saveChatMessageUseCase,
             observeChatHistoryUseCase,
-            restoreChatHistoryUseCase
+            restoreChatHistoryUseCase,
+            saveFavoriteUseCase,
+            birthdayCardGenerator,
+            shareUtils
         )
     }
 
