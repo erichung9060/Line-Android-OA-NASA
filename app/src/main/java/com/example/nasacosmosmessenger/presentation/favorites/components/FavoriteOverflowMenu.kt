@@ -1,5 +1,6 @@
 package com.example.nasacosmosmessenger.presentation.favorites.components
 
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Link
@@ -17,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.dp
 import com.example.nasacosmosmessenger.domain.model.Favorite
 
 /**
@@ -37,11 +39,11 @@ fun FavoriteOverflowMenu(
 
     IconButton(
         onClick = { expanded = true },
-        modifier = modifier
+        modifier = modifier.size(48.dp) // Minimum touch target per Material guidelines
     ) {
         Icon(
             imageVector = Icons.Default.MoreVert,
-            contentDescription = "More options",
+            contentDescription = "More options for ${favorite.title}",
             tint = Color.White
         )
     }

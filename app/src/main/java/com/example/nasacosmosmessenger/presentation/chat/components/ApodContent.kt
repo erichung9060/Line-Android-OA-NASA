@@ -53,7 +53,7 @@ fun ApodContent(
 
             AsyncImage(
                 model = imageUrl,
-                contentDescription = apod.title,
+                contentDescription = "APOD image: ${apod.title}, dated ${apod.date}",
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.Crop
             )

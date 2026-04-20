@@ -58,7 +58,7 @@ fun MessageInput(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Enter a date or message...") },
+                placeholder = { Text("Message Nova...") },
                 enabled = enabled,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
@@ -80,7 +80,7 @@ fun MessageInput(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
-                    contentDescription = "Send",
+                    contentDescription = "Send message",
                     tint = if (enabled && text.isNotBlank()) {
                         MaterialTheme.colorScheme.primary
                     } else {
