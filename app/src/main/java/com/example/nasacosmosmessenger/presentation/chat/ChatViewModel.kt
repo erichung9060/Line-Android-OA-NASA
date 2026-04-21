@@ -4,11 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nasacosmosmessenger.domain.model.Apod
 import com.example.nasacosmosmessenger.domain.model.ChatMessage
-import com.example.nasacosmosmessenger.domain.model.Resource
-import com.example.nasacosmosmessenger.domain.usecase.GetApodByDateUseCase
-import com.example.nasacosmosmessenger.domain.usecase.GetTodayApodUseCase
+import com.example.nasacosmosmessenger.domain.model.ChatProcessingResult
 import com.example.nasacosmosmessenger.domain.usecase.ObserveChatHistoryUseCase
-import com.example.nasacosmosmessenger.domain.usecase.ParseDateUseCase
+import com.example.nasacosmosmessenger.domain.usecase.ProcessChatMessageUseCase
 import com.example.nasacosmosmessenger.domain.usecase.RestoreChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.SaveChatMessageUseCase
 import com.example.nasacosmosmessenger.domain.usecase.SaveFavoriteUseCase
@@ -21,14 +19,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val getTodayApodUseCase: GetTodayApodUseCase,
-    private val getApodByDateUseCase: GetApodByDateUseCase,
-    private val parseDateUseCase: ParseDateUseCase,
+    private val processChatMessageUseCase: ProcessChatMessageUseCase,
     private val saveChatMessageUseCase: SaveChatMessageUseCase,
     private val observeChatHistoryUseCase: ObserveChatHistoryUseCase,
     private val restoreChatHistoryUseCase: RestoreChatHistoryUseCase,
@@ -41,6 +38,8 @@ class ChatViewModel @Inject constructor(
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private var hasShownGreeting = false
+    private var hasSentTodayApod = false
+    private var lastTodayApodDate: LocalDate? = null
 
     init {
         initializeChatHistory()
@@ -80,7 +79,7 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             val greetingMessage = ChatMessage(
                 id = UUID.randomUUID().toString(),
-                content = "Hi! I'm Nova, your cosmic guide. Tell me a date (like 1990/08/08 or 1990-08-08) and I'll show you what the universe looked like that day!",
+                content = "Hi! I'm Nova, your cosmic guide. Tell me a date (like 1990/08/08 or \"last Friday\") and I'll show you what the universe looked like that day!",
                 apod = null,
                 isFromUser = false,
                 timestamp = Instant.now()
@@ -93,6 +92,7 @@ class ChatViewModel @Inject constructor(
         if (text.isBlank()) return
 
         viewModelScope.launch {
+            // Save user message
             val userMessage = ChatMessage(
                 id = UUID.randomUUID().toString(),
                 content = text.trim(),
@@ -104,61 +104,77 @@ class ChatViewModel @Inject constructor(
 
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val parsedDate = parseDateUseCase(text)
-
-            val result = if (parsedDate != null) {
-                getApodByDateUseCase(parsedDate)
-            } else {
-                getTodayApodUseCase()
+            // Reset today's APOD flag if it's a new day
+            val today = LocalDate.now()
+            if (lastTodayApodDate != today) {
+                hasSentTodayApod = false
+                lastTodayApodDate = today
             }
 
-            when (result) {
-                is Resource.Success -> {
-                    val apod = result.data
-                    val responseText = if (parsedDate != null) {
-                        "On ${apod.date}, the universe presented us with:"
-                    } else {
-                        "Here's today's cosmic view:"
-                    }
+            // Process the message
+            val result = processChatMessageUseCase(text, hasSentTodayApod)
 
-                    saveChatMessageUseCase(
-                        ChatMessage(
-                            id = UUID.randomUUID().toString(),
-                            content = responseText,
-                            apod = apod,
-                            isFromUser = false,
-                            timestamp = Instant.now()
-                        )
-                    )
+            when (result) {
+                is ChatProcessingResult.ApodFound -> {
+                    val responseText = if (result.wasDateExtractedByAi) {
+                        "I understood you wanted ${result.apod.date}. Here's that day's cosmic view:"
+                    } else {
+                        "On ${result.apod.date}, the universe presented us with:"
+                    }
+                    saveNovaMessage(responseText, result.apod)
                     _uiState.update { it.copy(isLoading = false) }
                 }
 
-                is Resource.Error -> {
+                is ChatProcessingResult.ApodWithConversation -> {
+                    // Mark that we've sent today's APOD
+                    hasSentTodayApod = true
+                    lastTodayApodDate = today
+
+                    // Send AI response first, then APOD
+                    saveNovaMessage(result.aiResponse, null)
+                    saveNovaMessage("Here's today's cosmic view:", result.apod)
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+
+                is ChatProcessingResult.ConversationOnly -> {
+                    saveNovaMessage(result.aiResponse, null)
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+
+                is ChatProcessingResult.Error -> {
                     val errorContent = when {
                         result.cause is java.net.UnknownHostException ->
-                            "Oops! I couldn't reach NASA right now. Please check your connection and try again."
+                            "Oops! I couldn't reach the server right now. Please check your connection and try again."
                         result.cause is java.net.SocketTimeoutException ->
                             "The connection timed out. Please try again."
-                        result.message?.contains("429") == true ->
-                            "NASA's servers are busy. Please try again in a moment."
+                        result.message.contains("429") ->
+                            "The server is busy. Please try again in a moment."
                         else ->
                             "Oops! Something went wrong. Please try again."
                     }
-                    saveChatMessageUseCase(
-                        ChatMessage(
-                            id = UUID.randomUUID().toString(),
-                            content = errorContent,
-                            apod = null,
-                            isFromUser = false,
-                            timestamp = Instant.now()
+                    saveNovaMessage(errorContent, null)
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = result.message,
+                            lastFailedMessage = text.trim()
                         )
-                    )
-                    _uiState.update { it.copy(isLoading = false, error = result.message, lastFailedMessage = text.trim()) }
+                    }
                 }
-
-                is Resource.Loading -> {}
             }
         }
+    }
+
+    private suspend fun saveNovaMessage(content: String, apod: Apod?) {
+        saveChatMessageUseCase(
+            ChatMessage(
+                id = UUID.randomUUID().toString(),
+                content = content,
+                apod = apod,
+                isFromUser = false,
+                timestamp = Instant.now()
+            )
+        )
     }
 
     fun saveToFavorites(apod: Apod) {

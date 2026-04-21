@@ -1,12 +1,10 @@
 package com.example.nasacosmosmessenger.presentation.chat
 
 import com.example.nasacosmosmessenger.domain.model.Apod
+import com.example.nasacosmosmessenger.domain.model.ChatProcessingResult
 import com.example.nasacosmosmessenger.domain.model.MediaType
-import com.example.nasacosmosmessenger.domain.model.Resource
-import com.example.nasacosmosmessenger.domain.usecase.GetApodByDateUseCase
-import com.example.nasacosmosmessenger.domain.usecase.GetTodayApodUseCase
 import com.example.nasacosmosmessenger.domain.usecase.ObserveChatHistoryUseCase
-import com.example.nasacosmosmessenger.domain.usecase.ParseDateUseCase
+import com.example.nasacosmosmessenger.domain.usecase.ProcessChatMessageUseCase
 import com.example.nasacosmosmessenger.domain.usecase.RestoreChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.SaveChatMessageUseCase
 import com.example.nasacosmosmessenger.domain.usecase.SaveFavoriteUseCase
@@ -14,9 +12,8 @@ import com.example.nasacosmosmessenger.presentation.util.BirthdayCardGenerator
 import com.example.nasacosmosmessenger.util.ShareUtils
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
+import io.mockk.every
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -33,9 +30,7 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
 
-    private val getTodayApodUseCase = mockk<GetTodayApodUseCase>()
-    private val getApodByDateUseCase = mockk<GetApodByDateUseCase>()
-    private val parseDateUseCase = mockk<ParseDateUseCase>()
+    private val processChatMessageUseCase = mockk<ProcessChatMessageUseCase>()
     private val saveChatMessageUseCase = mockk<SaveChatMessageUseCase>(relaxed = true)
     private val observeChatHistoryUseCase = mockk<ObserveChatHistoryUseCase>()
     private val restoreChatHistoryUseCase = mockk<RestoreChatHistoryUseCase>()
@@ -71,9 +66,7 @@ class ChatViewModelTest {
         coEvery { restoreChatHistoryUseCase() } returns emptyList()
 
         return ChatViewModel(
-            getTodayApodUseCase,
-            getApodByDateUseCase,
-            parseDateUseCase,
+            processChatMessageUseCase,
             saveChatMessageUseCase,
             observeChatHistoryUseCase,
             restoreChatHistoryUseCase,
@@ -93,38 +86,38 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun `send message with date routes to GetApodByDateUseCase`() = runTest {
+    fun `send message with date result saves nova message`() = runTest {
         val viewModel = createViewModel()
-        val testDate = LocalDate.of(2020, 1, 15)
-
-        every { parseDateUseCase("Show me 2020/01/15") } returns testDate
-        coEvery { getApodByDateUseCase(testDate) } returns Resource.Success(sampleApod)
+        coEvery { processChatMessageUseCase("Show me 2020/01/15", any()) } returns
+            ChatProcessingResult.ApodFound(apod = sampleApod, wasDateExtractedByAi = false)
 
         viewModel.sendMessage("Show me 2020/01/15")
         advanceUntilIdle()
 
-        coVerify { getApodByDateUseCase(testDate) }
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
+        assertThat(viewModel.uiState.value.error).isNull()
     }
 
     @Test
-    fun `send message without date routes to GetTodayApodUseCase`() = runTest {
+    fun `send message without date shows apod and conversation`() = runTest {
         val viewModel = createViewModel()
-
-        every { parseDateUseCase("Hello Nova") } returns null
-        coEvery { getTodayApodUseCase() } returns Resource.Success(sampleApod)
+        coEvery { processChatMessageUseCase("Hello Nova", any()) } returns
+            ChatProcessingResult.ApodWithConversation(
+                apod = sampleApod,
+                aiResponse = "Hello! Here's today's cosmos."
+            )
 
         viewModel.sendMessage("Hello Nova")
         advanceUntilIdle()
 
-        coVerify { getTodayApodUseCase() }
+        assertThat(viewModel.uiState.value.isLoading).isFalse()
     }
 
     @Test
-    fun `error handling updates error state`() = runTest {
+    fun `error result updates error state`() = runTest {
         val viewModel = createViewModel()
-
-        every { parseDateUseCase("test") } returns null
-        coEvery { getTodayApodUseCase() } returns Resource.Error("Network error")
+        coEvery { processChatMessageUseCase("test", any()) } returns
+            ChatProcessingResult.Error("Network error")
 
         viewModel.sendMessage("test")
         advanceUntilIdle()
