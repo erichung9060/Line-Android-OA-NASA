@@ -32,6 +32,16 @@ android {
             "NASA_API_KEY",
             "\"${localProperties.getProperty("NASA_API_KEY", "DEMO_KEY")}\""
         )
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${localProperties.getProperty("GEMINI_API_KEY", "")}\""
+        )
+        buildConfigField(
+            "String",
+            "GEMINI_MODEL",
+            "\"${localProperties.getProperty("GEMINI_MODEL", "gemini-2.0-flash")}\""
+        )
     }
 
     buildTypes {
