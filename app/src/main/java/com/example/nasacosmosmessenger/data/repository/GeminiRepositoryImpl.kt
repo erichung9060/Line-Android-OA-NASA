@@ -55,20 +55,31 @@ class GeminiRepositoryImpl @Inject constructor(
 
     private fun buildDateExtractionPrompt(message: String, todayDate: String): String {
         return """
-            You are a date extraction assistant. Given a user message and today's date, extract any date reference.
+            Today is $todayDate.
 
-            Today's date: $todayDate
-
-            User message: "$message"
+            Task: Does the user's message refer to a specific date? If yes, calculate that exact calendar date and output ONLY the date in YYYY-MM-DD format. If no date reference exists, output ONLY: NO_DATE
 
             Rules:
-            - "上禮拜五" or "last Friday" = last Friday relative to today
-            - "昨天" or "yesterday" = yesterday
-            - "前天" or "day before yesterday" = day before yesterday
-            - "三天前" or "3 days ago" = 3 days ago
-            - If no date reference found, respond with exactly: NO_DATE
-            - If date found, respond with exactly the date in format: YYYY-MM-DD
-            - Only respond with the date or NO_DATE, nothing else.
+            - You MUST calculate and output the actual YYYY-MM-DD date, not describe it in words.
+            - Relative expressions must be resolved against today ($todayDate).
+            - "上禮拜五" / "last Friday" → find the most recent Friday before today, output its date.
+            - "昨天" / "yesterday" → today minus 1 day.
+            - "前天" / "day before yesterday" → today minus 2 days.
+            - "N天前" / "N days ago" → today minus N days.
+            - "上個月" / "last month" → first day of last month.
+            - A specific date like "2020/1/15", "1990-08-08", "January 15" → normalize to YYYY-MM-DD.
+            - Output NOTHING except the date (YYYY-MM-DD) or NO_DATE. No explanation, no extra text.
+
+            Examples (assuming today is 2026-04-22, Wednesday):
+            - "給我上禮拜五的" → 2026-04-17
+            - "show me yesterday's APOD" → 2026-04-21
+            - "前天的星空" → 2026-04-20
+            - "三天前" → 2026-04-19
+            - "1990/08/08的照片" → 1990-08-08
+            - "今天天氣真好" → NO_DATE
+            - "你好" → NO_DATE
+
+            User message: "$message"
         """.trimIndent()
     }
 
