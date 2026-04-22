@@ -28,6 +28,13 @@ class ShareUtils @Inject constructor(
      * @param cardFile The card image file to share
      * @param sourceUrl Optional source URL (for non-YouTube video fallback)
      */
+    fun openUrl(url: String) {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
     fun shareCard(cardFile: File, sourceUrl: String? = null) {
         val uri = FileProvider.getUriForFile(
             context,

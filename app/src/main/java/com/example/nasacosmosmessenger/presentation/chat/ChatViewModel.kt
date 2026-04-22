@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.nasacosmosmessenger.domain.model.Apod
 import com.example.nasacosmosmessenger.domain.model.ChatMessage
 import com.example.nasacosmosmessenger.domain.model.ChatProcessingResult
+import com.example.nasacosmosmessenger.domain.model.MediaType
 import com.example.nasacosmosmessenger.domain.usecase.ObserveChatHistoryUseCase
 import com.example.nasacosmosmessenger.domain.usecase.ProcessChatMessageUseCase
 import com.example.nasacosmosmessenger.domain.usecase.RestoreChatHistoryUseCase
@@ -189,6 +190,11 @@ class ChatViewModel @Inject constructor(
     }
 
     fun shareApod(apod: Apod) {
+        if (apod.mediaType == MediaType.VIDEO) {
+            shareUtils.openUrl(apod.url)
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
