@@ -34,7 +34,8 @@ class ApodRepositoryImpl @Inject constructor(
 
         // 2. Cache miss - fetch from network
         return try {
-            val response = api.getApod(dateString)
+            val dateParam = if (date == LocalDate.now()) null else dateString
+            val response = api.getApod(dateParam)
             val entity = ApodMapper.responseToEntity(response)
 
             // 3. Save to cache
