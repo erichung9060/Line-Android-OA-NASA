@@ -1,9 +1,6 @@
 package com.example.nasacosmosmessenger.presentation.chat.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,16 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,7 +24,6 @@ import com.example.nasacosmosmessenger.ui.theme.CosmosMessengerTheme
 import java.time.Instant
 import java.time.LocalDate
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatBubble(
     message: ChatMessage,
@@ -41,8 +31,6 @@ fun ChatBubble(
     onImageClick: (Apod) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-
     val bubbleShape = if (message.isFromUser) {
         RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
     } else {
@@ -71,53 +59,29 @@ fun ChatBubble(
             Spacer(modifier = Modifier.width(8.dp))
         }
 
-        Box {
-            Surface(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .combinedClickable(
-                        onClick = { },
-                        onLongClick = {
-                            if (message.apod != null) {
-                                showMenu = true
-                            }
-                        }
-                    ),
-                shape = bubbleShape,
-                color = bubbleColor,
-                tonalElevation = if (message.isFromUser) 0.dp else 1.dp
+        Surface(
+            modifier = Modifier.widthIn(max = 280.dp),
+            shape = bubbleShape,
+            color = bubbleColor,
+            tonalElevation = if (message.isFromUser) 0.dp else 1.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Text(
-                        text = message.content,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor
-                    )
-
-                    message.apod?.let { apod ->
-                        Spacer(modifier = Modifier.padding(top = 8.dp))
-                        ApodContent(
-                            apod = apod,
-                            onImageClick = { onImageClick(apod) }
-                        )
-                    }
-                }
-            }
-
-            // Context menu for favorites
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Add to Favorites") },
-                    onClick = {
-                        message.apod?.let { onAddToFavorites(it) }
-                        showMenu = false
-                    }
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor
                 )
+
+                message.apod?.let { apod ->
+                    Spacer(modifier = Modifier.padding(top = 8.dp))
+                    ApodContent(
+                        apod = apod,
+                        onImageClick = { onImageClick(apod) },
+                        onLongClick = { onAddToFavorites(apod) }
+                    )
+                }
             }
         }
 

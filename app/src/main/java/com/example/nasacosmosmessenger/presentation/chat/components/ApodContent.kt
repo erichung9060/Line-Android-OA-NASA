@@ -1,6 +1,7 @@
 package com.example.nasacosmosmessenger.presentation.chat.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -31,10 +32,12 @@ import com.example.nasacosmosmessenger.ui.theme.CosmosMessengerTheme
 import com.example.nasacosmosmessenger.util.DateFormatter
 import java.time.LocalDate
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ApodContent(
     apod: Apod,
     onImageClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -44,7 +47,10 @@ fun ApodContent(
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onImageClick)
+                .combinedClickable(
+                    onClick = onImageClick,
+                    onLongClick = onLongClick
+                )
         ) {
             val imageUrl = when (apod.mediaType) {
                 MediaType.IMAGE -> apod.url
@@ -125,7 +131,8 @@ private fun ApodContentPreview() {
                 thumbnailUrl = null,
                 copyright = "NASA"
             ),
-            onImageClick = {}
+            onImageClick = {},
+            onLongClick = {}
         )
     }
 }
