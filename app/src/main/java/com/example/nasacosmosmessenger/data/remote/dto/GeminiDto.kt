@@ -62,8 +62,8 @@ fun createGeminiRequest(prompt: String): GeminiRequestDto {
             )
         ),
         generationConfig = GeminiGenerationConfigDto(
-            temperature = 0.3f,  // Lower for more deterministic date extraction
-            maxOutputTokens = 256
+            temperature = 0.7f,
+            maxOutputTokens = 1024
         )
     )
 }

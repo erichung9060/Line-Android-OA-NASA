@@ -68,7 +68,8 @@ class GeminiRepositoryImpl @Inject constructor(
             - "N天前" / "N days ago" → today minus N days.
             - "上個月" / "last month" → first day of last month.
             - A specific date like "2020/1/15", "1990-08-08", "January 15" → normalize to YYYY-MM-DD.
-            - Output NOTHING except the date (YYYY-MM-DD) or NO_DATE. No explanation, no extra text.
+            - Output NOTHING except the date or NO_DATE. No explanation, no extra text.
+            - Month and day MUST be zero-padded to 2 digits. Example: April 1 → 04-01, not 4-1.
 
             Examples (assuming today is 2026-04-22, Wednesday):
             - "給我上禮拜五的" → 2026-04-17
