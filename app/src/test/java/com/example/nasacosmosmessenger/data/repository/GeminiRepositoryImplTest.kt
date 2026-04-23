@@ -23,7 +23,7 @@ class GeminiRepositoryImplTest {
         repository = GeminiRepositoryImpl(
             geminiApi = geminiApi,
             apiKey = "test-api-key",
-            model = "gemini-2.0-flash"
+            model = "gemini-3-flash-preview"
         )
     }
 
